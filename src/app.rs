@@ -58,8 +58,18 @@ impl Command for MessageHandler {
                 new_chat_member: Some(_),
                 chat: Chat { id: chat_id, .. },
                 ..
-            }) => self.rules
+            }) => self
+                .rules
                 .find_new_chat_member()
+                .map(|text| (chat_id, message_id, text)),
+            Some(Message {
+                message_id,
+                left_chat_member: Some(_),
+                chat: Chat { id: chat_id, .. },
+                ..
+            }) => self
+                .rules
+                .find_left_chat_member()
                 .map(|text| (chat_id, message_id, text)),
             Some(Message {
                 message_id,

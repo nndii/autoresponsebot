@@ -9,6 +9,7 @@ use std::path::Path;
 
 const ALL_USERS: &str = "all";
 const NEW_CHAT_MEMBER: &str = "new_chat_member";
+const LEFT_CHAT_MEMBER: &str = "left_chat_member";
 
 pub type RulesResult<T> = Result<T, RulesError>;
 
@@ -59,6 +60,7 @@ type UserId = i64;
 pub struct Rules {
     all: Vec<Rule>,
     new_chat_member: Vec<String>,
+    left_chat_member: Vec<String>,
     users: HashMap<UserId, Vec<Rule>>,
 }
 
@@ -89,6 +91,11 @@ impl Rules {
         let mut rng = thread_rng();
         rng.choose(&self.new_chat_member)
     }
+
+    pub fn find_left_chat_member(&self) -> Option<&String> {
+        let mut rng = thread_rng();
+        rng.choose(&self.left_chat_member)
+    }
 }
 
 pub fn load_from_file<P: AsRef<Path>>(path: P) -> RulesResult<Rules> {
@@ -97,28 +104,32 @@ pub fn load_from_file<P: AsRef<Path>>(path: P) -> RulesResult<Rules> {
     file.read_to_string(&mut buf)?;
     let mut rules = Rules::default();
     for (k, v) in from_str::<RawRules>(&buf)? {
-        if k == NEW_CHAT_MEMBER {
-            rules
-                .new_chat_member
-                .extend(convert_new_chat_member_rules(v)?);
-        } else {
-            let v = convert_text_rules(v)?;
-            if k == ALL_USERS {
-                rules.all.extend(v);
-            } else {
-                let user_id = k.parse::<UserId>()?;
-                rules.users.insert(user_id, v);
+        match &*k {
+            NEW_CHAT_MEMBER => {
+                rules.new_chat_member.extend(convert_chat_member_rules(v)?);
+            }
+            LEFT_CHAT_MEMBER => {
+                rules.left_chat_member.extend(convert_chat_member_rules(v)?);
+            }
+            _ => {
+                let v = convert_text_rules(v)?;
+                if k == ALL_USERS {
+                    rules.all.extend(v);
+                } else {
+                    let user_id = k.parse::<UserId>()?;
+                    rules.users.insert(user_id, v);
+                }
             }
         }
     }
     Ok(rules)
 }
 
-fn convert_new_chat_member_rules(raw: Vec<RawRule>) -> RulesResult<Vec<String>> {
+fn convert_chat_member_rules(raw: Vec<RawRule>) -> RulesResult<Vec<String>> {
     let mut result = Vec::with_capacity(raw.len());
     for item in raw {
         if let RawRule::Any(text) = item {
-            result.push(text)
+            result.push(text);
         } else {
             return Err(RulesError::UnexpectedRule);
         }
