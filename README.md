@@ -5,6 +5,8 @@
 ```
 # Telegram bot token
 AUTORESPONSEBOT_TOKEN=bottoken
+# Chat ID (integer) to work with
+AUTORESPONSEBOT_CHAT_ID=12345
 # Path to rules file
 AUTORESPONSEBOT_RULES=./rules.json
 ```

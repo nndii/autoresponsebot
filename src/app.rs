@@ -5,7 +5,7 @@ use std::time::Duration;
 use teleborg::objects::{Chat, Message, Update, User};
 use teleborg::{Bot, Command, Dispatcher, ParseMode, Updater};
 
-pub fn run<S: Into<String>>(token: S, rules: Rules) {
+pub fn run<S: Into<String>>(token: S, chat_id: i64, rules: Rules) {
     env_logger::init();
     let mut dispatcher = Dispatcher::new();
     let user_id_bucket =
@@ -14,12 +14,12 @@ pub fn run<S: Into<String>>(token: S, rules: Rules) {
         LeakyBucket::new(5, Duration::from_secs(60)).expect("Failed to create message bucket");
     dispatcher.add_command_handler(
         "userid",
-        BucketHandler::new(user_id_bucket, handle_user_id),
+        RestrictedToChatHandler::new(chat_id, BucketHandler::new(user_id_bucket, handle_user_id)),
         false,
     );
     dispatcher.add_message_handler(BucketHandler::new(
         message_bucket,
-        MessageHandler::new(rules),
+        RestrictedToChatHandler::new(chat_id, MessageHandler::new(rules)),
     ));
     Updater::start(Some(token.into()), None, None, None, dispatcher);
 }
@@ -135,5 +135,32 @@ impl Command for BucketHandler {
         } else {
             debug!("Update skipped: {:?}", update);
         }
+    }
+}
+
+struct RestrictedToChatHandler {
+    chat_id: i64,
+    inner: Box<Command>,
+}
+
+impl RestrictedToChatHandler {
+    fn new(chat_id: i64, handler: impl Command) -> RestrictedToChatHandler {
+        RestrictedToChatHandler {
+            chat_id: chat_id,
+            inner: Box::new(handler),
+        }
+    }
+}
+
+impl Command for RestrictedToChatHandler {
+    fn execute(&mut self, bot: &Bot, update: Update, args: Option<Vec<&str>>) {
+        let has_access = match update.message {
+            Some(Message { ref chat, .. }) => chat.id == self.chat_id,
+            _ => false,
+        };
+        if has_access {
+            return self.inner.execute(bot, update, args);
+        }
+        // TODO: leave chat
     }
 }
