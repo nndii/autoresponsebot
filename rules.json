@@ -77,6 +77,10 @@
         {
             "equals": "джерк",
             "out": ["https://telegra.ph/Dzherk-12-28"]
+        },
+        {
+            "equals": "раст заебись тема",
+            "out": ["https://telegra.ph/Rast-zaebis-tema-01-04"]
         }
     ],
     "new_chat_member": [
