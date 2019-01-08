@@ -81,6 +81,10 @@
         {
             "equals": "раст заебись тема",
             "out": ["https://telegra.ph/Rast-zaebis-tema-01-04"]
+        },
+        {
+            "equals": "/rustup",
+            "out": ["https://mexus.github.io/rustup-components-history/x86_64-pc-windows-gnu.html"]
         }
     ],
     "new_chat_member": [
